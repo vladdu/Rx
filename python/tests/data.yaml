@@ -1,0 +1,5 @@
+foo: [1,2,3]
+bar: bar
+mux:
+  zfoo: [3, 4]
+  abar: maa

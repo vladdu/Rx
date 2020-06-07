@@ -1,0 +1,15 @@
+---
+schema: /w1
+type: //rec
+required:
+  zfoo: /w1/zfoo
+  abar: /w1/abar
+
+---
+schema: /w1/zfoo
+type: //arr
+contents: //int
+
+---
+schema: /w1/abar
+type: //str

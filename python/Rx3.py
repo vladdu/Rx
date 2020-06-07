@@ -1,6 +1,7 @@
 import re
-import types
 from numbers import Number
+from abc import ABC
+
 core_types = []
 
 
@@ -31,7 +32,7 @@ def indent(text, level=1, whitespace='  '):
     return '\n'.join(whitespace * level + line for line in text.split('\n'))
 
 
-class Util(object):
+class Util:
     @staticmethod
     def make_range_check(opt):
 
@@ -46,12 +47,9 @@ class Util(object):
         inf = float('inf')
 
         def check_range(value):
-            return(
-              r.get('min',    -inf) <= value and \
-              r.get('max',     inf) >= value and \
-              r.get('min-ex', -inf) <  value and \
-              r.get('max-ex',  inf) >  value
-              )
+            return (r.get('min', -inf) <= value and r.get('max', inf) >= value
+                    and r.get('min-ex', -inf) < value
+                    and r.get('max-ex', inf) > value)
 
         return check_range
 
@@ -89,7 +87,7 @@ class Util(object):
         return validate_range
 
 
-class Factory(object):
+class Factory:
     def __init__(self, register_core_types=True):
         self.prefix_registry = {
             '': 'tag:codesimply.com,2008:rx/core/',
@@ -106,9 +104,10 @@ class Factory(object):
         pass
 
     def expand_uri(self, type_name):
-        if re.match('^\w+:', type_name): return type_name
+        if re.match(r'^\w+:', type_name):
+            return type_name
 
-        m = re.match('^/([-._a-z0-9]*)/([-._a-z0-9]+)$', type_name)
+        m = re.match(r'^/([-._a-z0-9]*)/([-._a-z0-9]+)$', type_name)
 
         if not m:
             raise ValueError(
@@ -172,7 +171,21 @@ class Factory(object):
             return type_class(schema, self)
 
 
-class _CoreType(object):
+class abstractstatic(staticmethod):
+    __slots__ = ()
+
+    def __init__(self, function):
+        super(abstractstatic, self).__init__(function)
+        function.__isabstractmethod__ = True
+
+    __isabstractmethod__ = True
+
+
+class _CoreType(ABC):
+    @abstractstatic
+    def subname():
+        pass
+
     @classmethod
     def uri(self):
         return 'tag:codesimply.com,2008:rx/core/' + self.subname()
@@ -387,7 +400,7 @@ class MapType(_CoreType):
 
         error_messages = []
 
-        for key, val in value.items():
+        for key, val in list(value.items()):
             try:
                 self.value_schema.validate(val, key)
             except SchemaMismatch as e:
@@ -466,13 +479,15 @@ class RecType(_CoreType):
             raise SchemaError('unknown parameter for //rec')
 
         self.known = set()
+        self.required = set()
+        self.optional = set()
         self.rest_schema = None
         if schema.get('rest'):
             self.rest_schema = rx.make_schema(schema['rest'])
 
         for which in ('required', 'optional'):
             setattr(self, which, {})
-            for field in schema.get(which, {}).keys():
+            for field in list(schema.get(which, {}).keys()):
                 if field in self.known:
                     raise SchemaError(
                         '%s appears in both required and optional' % field)
@@ -486,7 +501,7 @@ class RecType(_CoreType):
         if not isinstance(value, dict):
             raise SchemaTypeMismatch(name, 'record')
 
-        unknown = [k for k in value.keys() if k not in self.known]
+        unknown = [k for k in list(value.keys()) if k not in self.known]
 
         if unknown and not self.rest_schema:
             fields = indent('\n'.join(unknown))
@@ -540,7 +555,7 @@ class SeqType(_CoreType):
         self.content_schema = [rx.make_schema(s) for s in schema['contents']]
 
         self.tail_schema = None
-        if (schema.get('tail')):
+        if schema.get('tail'):
             self.tail_schema = rx.make_schema(schema['tail'])
 
     def validate(self, value, name='value'):

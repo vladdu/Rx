@@ -1,0 +1,20 @@
+---
+schema: /q1
+type: //rec
+required:
+  foo: /q1/foo
+  bar: /q1/bar
+  mux: /q1/mux
+
+---
+schema: /q1/foo
+type: //arr
+contents: //int
+
+---
+schema: /q1/bar
+type: //str
+
+---
+schema: /q1/mux
+file: ./schema2.yaml
